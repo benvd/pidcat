@@ -100,23 +100,6 @@ def termcolor(fg=None, bg=None):
 def colorize(message, fg=None, bg=None):
   return termcolor(fg, bg) + message + RESET
 
-def indent_wrap(message):
-  if width == -1:
-    return message
-  message = message.replace('\t', '    ')
-  wrap_area = width - header_size
-  messagebuf = ''
-  current = 0
-  while current < len(message):
-    next = min(current + wrap_area, len(message))
-    messagebuf += message[current:next]
-    if next < len(message):
-      messagebuf += '\n'
-      messagebuf += ' ' * header_size
-    current = next
-  return messagebuf
-
-
 LAST_USED = [RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN]
 KNOWN_TAGS = {
   'dalvikvm': WHITE,
@@ -311,7 +294,7 @@ while adb.poll() is None:
 
       linebuf  = '\n'
       linebuf += colorize(' ' * (header_size - 1), bg=WHITE)
-      linebuf += indent_wrap(' Process %s created for %s\n' % (line_package, target))
+      linebuf += ' Process %s created for %s\n' % (line_package, target)
       linebuf += colorize(' ' * (header_size - 1), bg=WHITE)
       linebuf += ' PID: %s   UID: %s   GIDs: %s' % (line_pid, line_uid, line_gids)
       linebuf += '\n'
@@ -371,5 +354,5 @@ while adb.poll() is None:
     replace = RULES[matcher]
     message = matcher.sub(replace, message)
 
-  linebuf += indent_wrap(message)
+  linebuf += message
   print(linebuf.encode('utf-8'))
