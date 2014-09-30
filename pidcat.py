@@ -76,7 +76,7 @@ named_processes = filter(lambda package: package.find(":") != -1, package)
 # Convert default process names from <package>: (cli notation) to <package> (android notation) in the exact names match group.
 named_processes = map(lambda package: package if package.find(":") != len(package) - 1 else package[:-1], named_processes)
 
-header_size = args.tag_width + 1 + 3 + 1 # space, level, space
+header_size = args.tag_width + 1 + 12 + 1 + 3 + 1 # space, timestamp, space, level, space
 
 width = -1
 try:
@@ -171,13 +171,14 @@ PID_START_DALVIK = re.compile(r'^E/dalvikvm\(\s*(\d+)\): >>>>> ([a-zA-Z0-9._:]+)
 PID_KILL  = re.compile(r'^Killing (\d+):([a-zA-Z0-9._:]+)/[^:]+: (.*)$')
 PID_LEAVE = re.compile(r'^No longer want ([a-zA-Z0-9._:]+) \(pid (\d+)\): .*$')
 PID_DEATH = re.compile(r'^Process ([a-zA-Z0-9._:]+) \(pid (\d+)\) has died.?$')
-LOG_LINE  = re.compile(r'^([A-Z])/(.+?)\( *(\d+)\): (.*?)$')
+LOG_LINE  = re.compile(r'^([0-9-:.]*)? ?([0-9-:.]*)? ?([A-Z])/(.+?)\( *(\d+)\): (.*?)$')
 BUG_LINE  = re.compile(r'.*nativeGetEnabledTags.*')
 BACKTRACE_LINE = re.compile(r'^#(.*?)pc\s(.*?)$')
 
 adb_command = base_adb_command[:]
 adb_command.append('logcat')
-adb_command.extend(['-v', 'brief'])
+adb_command.append('-v')
+adb_command.append('time')
 
 # Clear log before starting logcat
 if args.clear_logcat:
@@ -249,7 +250,7 @@ def parse_start_proc(line):
     return line_package, '', line_pid, line_uid, ''
   return None
 
-def tag_in_tags_regex(tag, tags):  
+def tag_in_tags_regex(tag, tags):
   return any(re.match(r'^' + t + r'$', tag) for t in map(str.strip, tags))
 
 ps_command = base_adb_command + ['shell', 'ps']
@@ -286,11 +287,12 @@ while adb.poll() is None:
   if log_line is None:
     continue
 
-  level, tag, owner, message = log_line.groups()
+  date, time, level, tag, owner, message = log_line.groups()
   tag = tag.strip()
   start = parse_start_proc(line)
   if start:
     line_package, target, line_pid, line_uid, line_gids = start
+
     if match_packages(line_package):
       pids.add(line_pid)
 
@@ -331,7 +333,7 @@ while adb.poll() is None:
   if args.tag and not tag_in_tags_regex(tag, args.tag):
     continue
 
-  linebuf = ''
+  linebuf = time + ' '
 
   # right-align tag title and allocate color if needed
   if tag != last_tag or args.always_tags:
