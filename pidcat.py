@@ -46,6 +46,7 @@ parser.add_argument('-t', '--tag', dest='tag', action='append', help='Filter out
 parser.add_argument('-i', '--ignore-tag', dest='ignored_tag', action='append', help='Filter output by ignoring specified tag(s)')
 parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + __version__, help='Print the version number and exit')
 parser.add_argument('-a', '--all', dest='all', action='store_true', default=False, help='Print all log messages')
+parser.add_argument('-m', '--mark', dest='mark_keywords', nargs='+', help='Mark tags that match any of the keywords')
 
 args = parser.parse_args()
 min_level = LOG_LEVELS_MAP[args.min_level.upper()]
@@ -271,6 +272,16 @@ while True:
       seen_pids = True
       pids.add(pid)
 
+def is_tag_marked(tag):
+  if not args.mark_keywords:
+    return False
+
+  for mtag in args.mark_keywords:
+    if mtag.lower() in tag.lower():
+      return True
+
+  return False
+
 while adb.poll() is None:
   try:
     line = adb.stdout.readline().decode('utf-8', 'replace').strip()
@@ -339,8 +350,11 @@ while adb.poll() is None:
   if tag != last_tag or args.always_tags:
     last_tag = tag
     color = allocate_color(tag)
-    tag = tag[-args.tag_width:].rjust(args.tag_width)
-    linebuf += colorize(tag, fg=color)
+    short_tag = tag[-args.tag_width:].rjust(args.tag_width)
+    if is_tag_marked(tag):
+      linebuf += colorize(short_tag, fg=WHITE, bg=color)
+    else:
+      linebuf += colorize(short_tag, fg=color)
   else:
     linebuf += ' ' * args.tag_width
   linebuf += ' '
